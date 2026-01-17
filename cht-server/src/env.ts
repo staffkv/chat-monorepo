@@ -1,4 +1,4 @@
-import z from "zod";
+import z from 'zod'
 
 const envSchema = z.object({
   PORT: z.coerce.number(),
@@ -6,4 +6,4 @@ const envSchema = z.object({
   MONGO_URI: z.string(),
 })
 
-export const env = envSchema.parse(process.env);
+export const env = envSchema.parse(process.env)
