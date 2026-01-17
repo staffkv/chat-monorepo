@@ -1,0 +1,21 @@
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  chat-server:
+    build:
+      context: ./cht-server
+    ports:
+      - "3333:3333"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/chat
+      - PORT=3333
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
