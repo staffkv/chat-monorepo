@@ -13,9 +13,9 @@ import { mongo } from './plugins/db'
 import { createAccount } from './http/routes/auth/create-account'
 import { jwtPlugin } from './plugins/jwt'
 import { authenticateWithPassword } from '@/http/routes/auth/authenticate-with-password'
-import { auth } from './plugins/auth'
 import { getProfile } from './http/routes/auth/get-profile'
 import { errorHandler } from './http/error-handler'
+import { wsPlugin } from './http/routes/realtime/ws'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -30,6 +30,7 @@ app.register(fastifyCors, {
 app.register(mongo)
 app.register(jwtPlugin)
 app.setErrorHandler(errorHandler)
+app.register(wsPlugin)
 
 app.register(fastifySwagger, {
   openapi: {
