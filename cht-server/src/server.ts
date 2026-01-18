@@ -1,23 +1,23 @@
-import { fastify } from 'fastify'
-import {
-  serializerCompiler,
-  validatorCompiler,
-  jsonSchemaTransform,
-  type ZodTypeProvider,
-} from 'fastify-type-provider-zod'
 import { fastifyCors } from '@fastify/cors'
 import { fastifySwagger } from '@fastify/swagger'
 import ScalarApiReference from '@scalar/fastify-api-reference'
-import { env } from './env'
-import { mongo } from './plugins/db'
-import { createAccount } from './http/routes/auth/create-account'
-import { jwtPlugin } from './plugins/jwt'
+import { fastify } from 'fastify'
+import {
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod'
 import { authenticateWithPassword } from '@/http/routes/auth/authenticate-with-password'
-import { getProfile } from './http/routes/auth/get-profile'
+import { env } from './env'
 import { errorHandler } from './http/error-handler'
+import { createAccount } from './http/routes/auth/create-account'
+import { getProfile } from './http/routes/auth/get-profile'
 import { wsPlugin } from './http/routes/realtime/ws'
+import { mongo } from './plugins/db'
+import { jwtPlugin } from './plugins/jwt'
 
-const app = fastify().withTypeProvider<ZodTypeProvider>()
+const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>()
 
 app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)

@@ -1,9 +1,9 @@
-import fp from 'fastify-plugin'
 import websocket from '@fastify/websocket'
-import { z } from 'zod'
 import type { FastifyInstance } from 'fastify'
-import type { WebSocket } from 'ws'
+import fp from 'fastify-plugin'
 import { ObjectId } from 'mongodb'
+import type { WebSocket } from 'ws'
+import { z } from 'zod'
 
 const wsInboundSchema = z.discriminatedUnion('type', [
   z.object({
@@ -15,12 +15,13 @@ const wsInboundSchema = z.discriminatedUnion('type', [
   }),
 ])
 
-function isOpen(ws: WebSocket) {
-  return (ws as any).readyState === 1
+function isOpen(ws?: WebSocket) {
+  return !!ws && (ws as any).readyState === 1
 }
 
 export const wsPlugin = fp(async (app: FastifyInstance) => {
   await app.register(websocket)
+  app.log.info('✅ wsPlugin carregado (websocket registrado)')
 
   const socketsByUser = new Map<string, Set<WebSocket>>()
 
@@ -46,39 +47,51 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
     const set = socketsByUser.get(userId)
     if (!set) return
     const data = JSON.stringify(msg)
-    for (const ws of set) {
-      if (isOpen(ws)) ws.send(data)
-    }
+    for (const ws of set) if (isOpen(ws)) ws.send(data)
   }
 
   app.get('/ws', { websocket: true }, (connection, req) => {
-    const ws = connection.socket
+    // ✅ compatível com várias versões do @fastify/websocket
+    const ws: WebSocket =
+      ((connection as any).socket ??
+        (connection as any).ws ??
+        (connection as any)) as WebSocket
 
-    // ===== handshake logs =====
+    if (!ws || typeof (ws as any).send !== 'function') {
+      app.log.error(
+        { connectionKeys: Object.keys(connection as any) },
+        'WS socket not found on connection'
+      )
+      return
+    }
+
     app.log.info(
       {
         url: req.url,
         hasJwt: !!(app as any).jwt,
         hasMongoDb: !!(app as any).mongo?.db,
-        auth: req.headers.authorization?.slice(0, 20),
+        authPrefix: req.headers.authorization?.slice(0, 20),
       },
       'WS handshake'
     )
 
-    // ===== AUTH (Insomnia) =====
+    // ✅ aceita token por Header OU Query (?token=)
     const auth =
       (req.headers['authorization'] as string | undefined) ||
       (req.headers['Authorization'] as unknown as string | undefined)
 
-    if (!auth || !auth.startsWith('Bearer ')) {
-      app.log.warn({ auth }, 'WS unauthorized: missing Bearer')
+    const tokenFromHeader = auth?.startsWith('Bearer ') ? auth.slice(7) : null
+    const tokenFromQuery = (req.query as any)?.token ? String((req.query as any).token) : null
+    const token = tokenFromHeader ?? tokenFromQuery
+
+    if (!token) {
+      app.log.warn({ auth, hasTokenQuery: !!tokenFromQuery }, 'WS unauthorized: missing token')
       ws.close(1008, 'UNAUTHORIZED')
       return
     }
 
     let userId: string
     try {
-      const token = auth.slice(7)
       const payload = app.jwt.verify(token) as { sub: string }
       userId = payload.sub
       app.log.info({ userId }, 'WS auth ok')
@@ -91,12 +104,9 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
     add(userId, ws)
     send(ws, { type: 'connected', payload: { userId } })
 
-    // ===== MESSAGE HANDLER =====
     ws.on('message', async (raw) => {
-      console.log('📩 WS RECEBI:', raw.toString())
-      app.log.info({ raw: raw.toString() }, 'WS message received (raw)')
+      app.log.info({ raw: raw.toString() }, '📩 WS message received')
 
-      // 1) parse JSON
       let parsed: unknown
       try {
         parsed = JSON.parse(raw.toString())
@@ -106,7 +116,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
         return
       }
 
-      // 2) validar schema
       const input = wsInboundSchema.safeParse(parsed)
       if (!input.success) {
         app.log.warn({ issues: input.error.issues }, 'WS bad message format')
@@ -121,14 +130,12 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
 
       if (!trimmed) return
 
-      // 3) valida destinatário
       if (!ObjectId.isValid(to)) {
         app.log.warn({ to }, 'WS invalid recipient ObjectId')
         send(ws, { type: 'error', payload: { message: 'Invalid recipient id' } })
         return
       }
 
-      // 4) DB ops com try/catch completo
       try {
         if (!app.mongo?.db) {
           app.log.error('WS mongo db is undefined (app.mongo.db)')
@@ -137,36 +144,48 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
         }
 
         const db = app.mongo.db
+        app.log.info({ dbName: db.databaseName }, 'WS using DB')
+
         const users = db.collection('users')
         const conversations = db.collection('conversations')
         const messages = db.collection('messages')
 
-        // (opcional) mostra em que DB está
-        app.log.info({ dbName: db.databaseName }, 'WS using DB')
-
         const toObjId = new ObjectId(to)
 
-        // garante que "to" existe
-        const exists = await users.findOne({ _id: toObjId })
+        // 1) garante que o destinatário existe
+        const exists = await users.findOne({ _id: toObjId }, { projection: { _id: 1 } })
         if (!exists) {
           app.log.warn({ to }, 'WS recipient not found in users')
           send(ws, { type: 'error', payload: { message: 'Recipient not found' } })
           return
         }
 
-        // conversa
+        // 2) cria/atualiza conversa (sem depender do retorno do findOneAndUpdate)
         const participants = [userId, to].sort()
-        const conv = await conversations.findOneAndUpdate(
+
+        await conversations.updateOne(
           { participants },
           {
             $setOnInsert: { participants, createdAt: new Date() },
             $set: { updatedAt: new Date() },
           },
-          { upsert: true, returnDocument: 'after' }
+          { upsert: true }
         )
 
-        const conversationId = conv.value!._id.toString()
+        const convDoc = await conversations.findOne(
+          { participants },
+          { projection: { _id: 1 } }
+        )
 
+        if (!convDoc?._id) {
+          app.log.error({ participants }, 'WS failed to create/find conversation')
+          send(ws, { type: 'error', payload: { message: 'Failed to create/find conversation' } })
+          return
+        }
+
+        const conversationId = convDoc._id.toString()
+
+        // 3) persiste mensagem
         const doc = {
           conversationId,
           from: userId,
@@ -178,20 +197,28 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
         app.log.info({ doc }, 'WS inserting message')
 
         const result = await messages.insertOne(doc)
-
         app.log.info({ insertedId: result.insertedId.toString() }, 'WS message inserted')
 
-        const dto = {
-          _id: result.insertedId.toString(),
-          ...doc,
-        }
+        const dto = { _id: result.insertedId.toString(), ...doc }
 
-        // realtime
+        // 4) realtime
         sendToUser(to, { type: 'message:new', payload: dto })
         send(ws, { type: 'message:sent', payload: dto })
-      } catch (err) {
+        sendToUser(to, {
+          type: 'notification:new-message',
+          payload: {
+            conversationId: dto.conversationId,
+            from: dto.from,
+            contentPreview: dto.content.slice(0, 80),
+            createdAt: dto.createdAt,
+        },
+})
+      } catch (err: any) {
         app.log.error({ err }, 'WS failed to save message')
-        send(ws, { type: 'error', payload: { message: 'Failed to save message' } })
+        send(ws, {
+          type: 'error',
+          payload: { message: 'Failed to save message', details: err?.message ?? String(err) },
+        })
       }
     })
 
