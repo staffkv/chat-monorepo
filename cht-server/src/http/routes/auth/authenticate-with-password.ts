@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { authenticateSchema } from '@/http/schemas/authenticateSchema'
 import { compare } from 'bcryptjs'
 import z from 'zod'
+import { BadRequestError } from '../_errors/bad-request-error'
 
 export async function authenticateWithPassword(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
@@ -13,14 +14,11 @@ export async function authenticateWithPassword(app: FastifyInstance) {
         summary: 'Autenticar usuário com nome de usuário e senha',
         description: 'Autentica um usuário existente e retorna um token JWT.',
         body: authenticateSchema,
-        response: ({
-          401: z.object({
-            message: z.string(),
-          }),
+        response: {
           201: z.object({
             token: z.string(),
-          })
-        }),
+          }),
+        },
       },
     },
     async (request, reply) => {
@@ -28,21 +26,24 @@ export async function authenticateWithPassword(app: FastifyInstance) {
       const users = await app.mongo.db!.collection('users')
       const user = await users.findOne({ username })
       if (!user) {
-        return reply.code(401).send({ message: 'Credenciais inválidas' })
+        throw new BadRequestError('Invalid credentials')
       }
 
       const isValidPassword = await compare(password, user.passwordHash)
       if (!isValidPassword) {
-        return reply.code(401).send({ message: 'Credenciais inválidas' })
+        throw new BadRequestError('Invalid credentials')
       }
 
-      const token = await reply.jwtSign({
-        sub: user._id.toString(),
-      }, {
-        sign: { expiresIn: '7 days' },
-      })
+      const token = await reply.jwtSign(
+        {
+          sub: user._id.toString(),
+        },
+        {
+          sign: { expiresIn: '7 days' },
+        },
+      )
 
       return reply.status(201).send({ token })
-    }
+    },
   )
 }

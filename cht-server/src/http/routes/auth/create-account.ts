@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { createAccountSchema } from './schemas/createAccountSchema'
+import { createAccountSchema } from '../../schemas/createAccountSchema'
 import { hash } from 'bcryptjs'
-import z from 'zod'
+import { BadRequestError } from '../_errors/bad-request-error'
 
 export async function createAccount(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
@@ -11,8 +11,9 @@ export async function createAccount(app: FastifyInstance) {
       schema: {
         tags: ['Auth'],
         summary: 'Registrar uma nova conta de usuário',
-        description: 'Cria uma nova conta de usuário com nome, nome de usuário e senha.',
-        body: createAccountSchema
+        description:
+          'Cria uma nova conta de usuário com nome, nome de usuário e senha.',
+        body: createAccountSchema,
       },
     },
     async (request, reply) => {
@@ -20,7 +21,7 @@ export async function createAccount(app: FastifyInstance) {
       const users = app.mongo.db!.collection('users')
 
       const exists = await users.findOne({ username })
-      if (exists) return reply.code(400).send({ message: 'Username já existe' })
+      if (exists) throw new BadRequestError('User with same already exists')
 
       const passwordHash = await hash(password, 6)
 

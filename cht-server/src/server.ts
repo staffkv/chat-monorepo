@@ -10,10 +10,12 @@ import { fastifySwagger } from '@fastify/swagger'
 import ScalarApiReference from '@scalar/fastify-api-reference'
 import { env } from './env'
 import { mongo } from './plugins/db'
-import { createAccount } from './http/create-account'
+import { createAccount } from './http/routes/auth/create-account'
 import { jwtPlugin } from './plugins/jwt'
-import { authenticateWithPassword } from '@/http/authenticate-with-password'
+import { authenticateWithPassword } from '@/http/routes/auth/authenticate-with-password'
 import { auth } from './plugins/auth'
+import { getProfile } from './http/routes/auth/get-profile'
+import { errorHandler } from './http/error-handler'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -27,6 +29,7 @@ app.register(fastifyCors, {
 
 app.register(mongo)
 app.register(jwtPlugin)
+app.setErrorHandler(errorHandler)
 
 app.register(fastifySwagger, {
   openapi: {
@@ -49,7 +52,7 @@ app.get('/health', async () => {
 
 app.register(createAccount, { prefix: '/session' })
 app.register(authenticateWithPassword, { prefix: '/session' })
-app.register(auth)
+app.register(getProfile)
 
 app.listen({ port: env.PORT, host: env.HOST }).then(() => {
   console.log('🔥 HTTP server is running on http://localhost:3333')
