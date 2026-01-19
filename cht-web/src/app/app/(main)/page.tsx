@@ -2,6 +2,6 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div>teste</div>
+    <div>chat logado</div>
   );
 }
