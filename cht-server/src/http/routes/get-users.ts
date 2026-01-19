@@ -29,13 +29,13 @@ export async function getUsers(app: FastifyInstance) {
         },
       },
       async (request, reply) => {
-        const { sub } = await request.jwtVerify<{ sub: string }>()
+        await request.jwtVerify<{ sub: string }>()
 
         const usersCollection = app.mongo.db!.collection('users')
 
         const users = await usersCollection
           .find(
-            { _id: { $ne: new app.mongo.ObjectId(sub) } },
+            {},
             { projection: { passwordHash: 0 } },
           )
           .toArray()

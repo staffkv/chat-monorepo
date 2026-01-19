@@ -1,7 +1,7 @@
 'use client'
 
-import { signInWithUsernameAndPassword } from '@/app/auth/sign-in/action'
-import { Eye, EyeOff, Loader2, Mail } from 'lucide-react'
+import { registerWithUsernameAndPassword } from '@/app/auth/register/action'
+import { Eye, EyeOff, Loader2, UserPlus } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +10,7 @@ import { Label } from '@radix-ui/react-label'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 
-export function SignInForms() {
+export function RegisterForm() {
   const router = useRouter()
 
   const [showPassword, setShowPassword] = useState(false)
@@ -37,18 +37,18 @@ export function SignInForms() {
 
     try {
       const formData = new FormData(e.currentTarget)
-      const result = await signInWithUsernameAndPassword(formData)
+      const result = await registerWithUsernameAndPassword(formData)
 
       if (!result.success) {
         if (result.errors) setFieldErrors(result.errors)
         if (result.message) setError(result.message)
-        showToast('error', result.message ?? 'Falha ao entrar. Verifique os dados e tente novamente.')
+        showToast('error', result.message ?? 'Falha ao cadastrar. Verifique os dados e tente novamente.')
         return
       }
 
-      showToast('success', 'Login realizado com sucesso!')
+      showToast('success', 'Conta criada com sucesso!')
       setTimeout(() => {
-        router.push('/app')
+        router.push('/auth/sign-in')
         router.refresh()
       }, 800)
     } finally {
@@ -71,12 +71,12 @@ export function SignInForms() {
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <div className="w-12 h-12 bg-linear-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Mail className="w-6 h-6 text-white" />
+              <UserPlus className="w-6 h-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Bem-vindo de volta</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Criar conta</CardTitle>
           <CardDescription className="text-center">
-            Entre com suas credenciais para acessar o chat
+            Preencha os dados para acessar o chat
           </CardDescription>
         </CardHeader>
 
@@ -89,6 +89,21 @@ export function SignInForms() {
                 </AlertDescription>
               </Alert>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Seu nome"
+                disabled={loading}
+                required
+              />
+              {fieldErrors.name?.[0] && (
+                <p className="text-sm text-red-600">{fieldErrors.name[0]}</p>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="username">Usuário</Label>
@@ -126,8 +141,8 @@ export function SignInForms() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {fieldErrors.senha?.[0] && (
-                <p className="text-sm text-red-600">{fieldErrors.senha[0]}</p>
+              {fieldErrors.password?.[0] && (
+                <p className="text-sm text-red-600">{fieldErrors.password[0]}</p>
               )}
             </div>
           </CardContent>
@@ -141,17 +156,17 @@ export function SignInForms() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Entrando...
+                  Criando...
                 </>
               ) : (
-                'Entrar'
+                'Criar conta'
               )}
             </Button>
 
             <div className="text-center text-sm text-gray-600">
-              Não tem uma conta?{' '}
-              <a href="/auth/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
-                Criar conta
+              Já tem uma conta?{' '}
+              <a href="/auth/sign-in" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                Entrar
               </a>
             </div>
           </CardFooter>

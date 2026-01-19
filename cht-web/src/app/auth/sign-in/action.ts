@@ -31,8 +31,9 @@ export async function signInWithUsernameAndPassword(input: FormData){
   ;(await cookies()).set('token', token, ({
     path: '/',
     maxAge: 60 * 60 * 24 * 7,
-    httpOnly: true,
-    secure: true,
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
   }))
  } catch (error) {
   if (error instanceof HTTPError) {

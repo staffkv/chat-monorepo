@@ -1,7 +1,5 @@
-import { SignInForms } from "./auth/sign-in/sign-in-form";
+import { redirect } from 'next/navigation'
 
 export default function HomePage() {
-  return (
-    <SignInForms />
-  )
+  redirect('/auth/sign-in')
 }
