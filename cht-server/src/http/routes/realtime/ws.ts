@@ -21,7 +21,6 @@ function isOpen(ws?: WebSocket) {
 
 export const wsPlugin = fp(async (app: FastifyInstance) => {
   await app.register(websocket)
-  app.log.info('✅ wsPlugin carregado (websocket registrado)')
 
   const socketsByUser = new Map<string, Set<WebSocket>>()
 
