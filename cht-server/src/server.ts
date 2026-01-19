@@ -16,6 +16,8 @@ import { getProfile } from './http/routes/auth/get-profile'
 import { wsPlugin } from './http/routes/realtime/ws'
 import { mongo } from './plugins/db'
 import { jwtPlugin } from './plugins/jwt'
+import { getUsers } from './http/routes/get-users'
+import { getConversationMessages } from './http/routes/get-conversation-messages'
 
 const app = fastify({ logger: true }).withTypeProvider<ZodTypeProvider>()
 
@@ -54,6 +56,8 @@ app.get('/health', async () => {
 app.register(createAccount, { prefix: '/session' })
 app.register(authenticateWithPassword, { prefix: '/session' })
 app.register(getProfile)
+app.register(getUsers)
+app.register(getConversationMessages)
 
 app.listen({ port: env.PORT, host: env.HOST }).then(() => {
   console.log('🔥 HTTP server is running on http://localhost:3333')

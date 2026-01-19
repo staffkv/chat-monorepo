@@ -25,6 +25,14 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
 
   const socketsByUser = new Map<string, Set<WebSocket>>()
 
+  app.decorate('presence', {
+    isOnline: (userId: string) => {
+      const set = socketsByUser.get(userId)
+      return !!set && set.size > 0
+    },
+    onlineUserIds: () => Array.from(socketsByUser.keys()),
+  })
+
   function add(userId: string, ws: WebSocket) {
     const set = socketsByUser.get(userId) ?? new Set()
     set.add(ws)
