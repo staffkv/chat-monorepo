@@ -11,8 +11,6 @@ Step-by-step: MongoDB + Backend (Local)
   - `docker run --name chat-mongo -p 27017:27017 -d mongo:7`
 - Option B (Local install):
   - Start your local MongoDB service on `mongodb://localhost:27017`
-- Option C (Usar my config Mongo Online):
- - Using .env MONGO_URI=mongodb+srv://chatrepo:chatrepodb@cluster01.xwlnz8l.mongodb.net/?appName=cluster01
 
 2) Configure backend env
 - Create `cht-server/.env`:
@@ -49,15 +47,3 @@ Docker Compose (MongoDB + Backend)
 Notes
 - Auth uses `Authorization: Bearer <token>` for API + WS.
 - WS accepts token via query: `ws://localhost:3333/ws?token=...`
-
-- .env server
-MONGO_URI=mongodb+srv://chatrepo:chatrepodb@cluster01.xwlnz8l.mongodb.net/?appName=cluster01
-PORT=3333
-HOST=0.0.0.0
-MONGO_DB_NAME=chatrepodb
-JWT_SECRET=chat-monorepo-secret
-
-
-- env web
-NEXT_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:3333
