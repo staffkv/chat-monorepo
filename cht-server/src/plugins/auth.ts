@@ -1,4 +1,4 @@
-import { UnauthorizedError } from '@/http/routes/_errors/unauthorized-error'
+import { UnauthorizedError } from '../http/routes/_errors/unauthorized-error'
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
 

@@ -12,8 +12,8 @@ services:
     ports:
       - "3333:3333"
     environment:
-      - MONGO_URI=mongodb://mongo:27017/chat
-      - MONGO_DB_NAME=chat
+      - MONGO_URI=mongodb://mongo:27017/chatrepodb
+      - MONGO_DB_NAME=chatrepodb
       - JWT_SECRET=change-me
       - HOST=0.0.0.0
       - PORT=3333

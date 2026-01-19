@@ -8,7 +8,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
-import { authenticateWithPassword } from '@/http/routes/auth/authenticate-with-password'
+import { authenticateWithPassword } from './http/routes/auth/authenticate-with-password'
 import { env } from './env'
 import { errorHandler } from './http/error-handler'
 import { createAccount } from './http/routes/auth/create-account'

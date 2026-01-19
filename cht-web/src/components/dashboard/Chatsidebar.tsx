@@ -77,7 +77,7 @@ export function ChatListItem({
               </span>
             )}
             {!!badgeCount && badgeCount > 0 && (
-              <span className="min-w-[1.25rem] px-2 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+              <span className="min-w-5 px-2 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
                 {badgeCount}
               </span>
             )}

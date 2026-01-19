@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { auth } from '@/plugins/auth'
+import { auth } from '../../plugins/auth'
 import { ObjectId } from 'mongodb'
 
 export async function getConversationMessages(app: FastifyInstance) {
@@ -19,7 +19,7 @@ export async function getConversationMessages(app: FastifyInstance) {
           }),
           querystring: z.object({
             limit: z.coerce.number().min(1).max(50).default(30),
-            before: z.string().optional(), // ISO date ou messageId, opcional
+            before: z.string().optional(),
           }),
           response: {
             200: z.object({

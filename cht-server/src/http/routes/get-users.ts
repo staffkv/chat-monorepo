@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod'
-import { auth } from '@/plugins/auth'
+import { auth } from '../../plugins/auth'
 
 export async function getUsers(app: FastifyInstance) {
   app

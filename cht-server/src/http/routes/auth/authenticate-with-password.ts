@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
-import { authenticateSchema } from '@/http/schemas/authenticateSchema'
+import { authenticateSchema } from '../../schemas/authenticateSchema'
 import { compare } from 'bcryptjs'
 import z from 'zod'
 import { BadRequestError } from '../_errors/bad-request-error'

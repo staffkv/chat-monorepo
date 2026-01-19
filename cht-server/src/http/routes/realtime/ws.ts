@@ -59,7 +59,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
   }
 
   app.get('/ws', { websocket: true }, (connection, req) => {
-    // ✅ compatível com várias versões do @fastify/websocket
     const ws: WebSocket =
       ((connection as any).socket ??
         (connection as any).ws ??
@@ -83,7 +82,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
       'WS handshake'
     )
 
-    // ✅ aceita token por Header OU Query (?token=)
     const auth =
       (req.headers['authorization'] as string | undefined) ||
       (req.headers['Authorization'] as unknown as string | undefined)
@@ -160,7 +158,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
 
         const toObjId = new ObjectId(to)
 
-        // 1) garante que o destinatário existe
         const exists = await users.findOne({ _id: toObjId }, { projection: { _id: 1 } })
         if (!exists) {
           app.log.warn({ to }, 'WS recipient not found in users')
@@ -168,7 +165,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
           return
         }
 
-        // 2) cria/atualiza conversa (sem depender do retorno do findOneAndUpdate)
         const participants = [userId, to].sort()
 
         await conversations.updateOne(
@@ -193,7 +189,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
 
         const conversationId = convDoc._id.toString()
 
-        // 3) persiste mensagem
         const doc = {
           conversationId,
           from: userId,
@@ -209,7 +204,6 @@ export const wsPlugin = fp(async (app: FastifyInstance) => {
 
         const dto = { _id: result.insertedId.toString(), ...doc }
 
-        // 4) realtime
         sendToUser(to, { type: 'message:new', payload: dto })
         send(ws, { type: 'message:sent', payload: dto })
         sendToUser(to, {
